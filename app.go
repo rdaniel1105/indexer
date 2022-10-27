@@ -101,12 +101,13 @@ func ReadAndApplyEmailFormat(root string, fields []string) Email {
 func WriteEmailInJDSON(enron Email) string {
 	b, _ := json.Marshal(enron)
 	mydir, err := os.Getwd()
+	fullDirectory := mydir + "/emails.jdson"
 	if err != nil {
 		fmt.Println(err)
 	}
-	if _, err := os.Stat(mydir); err == nil {
+	if _, err := os.Stat(fullDirectory); err == nil {
 		// path/to/whatever exists
-		f, err := os.OpenFile("emails.jdson", os.O_APPEND|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(fullDirectory, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -120,42 +121,42 @@ func WriteEmailInJDSON(enron Email) string {
 			log.Fatal(err2)
 		}
 		return "Done!"
+	} else {
+		f, err1 := os.Create("emails.jdson")
+
+		if err1 != nil {
+			log.Fatal(err1)
+		}
+		data := `{ "index" : { "_index" : "myindex" } }` + "\n" + string(b)
+
+		defer f.Close()
+
+		_, err2 := f.WriteString(data)
+
+		if err2 != nil {
+			log.Fatal(err2)
+		}
+		return "Done!"
 	}
-	f, err1 := os.Create("emails.jdson")
-
-	if err1 != nil {
-		log.Fatal(err1)
-	}
-	data := `{ "index" : { "_index" : "myindex" } }` + "\n" + string(b)
-
-	defer f.Close()
-
-	_, err2 := f.WriteString(data)
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-	return "Done!"
 }
 
 func FileChecker(root string, fields []string, files []string) string {
-	dirCheck, _ := isDirectory(root)
-	if !dirCheck {
-		fullEmail := ReadAndApplyEmailFormat(root, fields)
-		message := WriteEmailInJDSON(fullEmail)
-		fmt.Println(message)
-	} else {
-		subFiles, err := IOReadDir(root)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, subFile := range subFiles {
-			fmt.Println(subFile)
-			subRoot := root + "/" + sub
-			txtCheck2, _ := isDirectory(subRoot)
-
+	for _, file := range files {
+		fileRoot := root + "/" + file
+		dirCheck, _ := isDirectory(fileRoot)
+		if !dirCheck {
+			fullEmail := ReadAndApplyEmailFormat(fileRoot, fields)
+			message := WriteEmailInJDSON(fullEmail)
+			fmt.Println(message)
+		} else {
+			subFiles, err := IOReadDir(fileRoot)
+			if err != nil {
+				log.Fatal(err)
+			}
+			FileChecker(fileRoot, fields, subFiles)
 		}
 	}
+	return "Done!"
 }
 
 func main() {
@@ -188,45 +189,7 @@ func main() {
 		"X-FileName",
 	}
 
-	for _, file := range files {
-		subRoot := root + "/" + file
-		dirCheck, _ := isDirectory(subRoot)
-		if !dirCheck {
-			fullEmail := ReadAndApplyEmailFormat(subRoot, fields)
-			message := WriteEmailInJDSON(fullEmail)
-			fmt.Println(message)
-		} else {
-			subFiles, err := IOReadDir(subRoot)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for _, sub := range subFiles {
-				subRoot1 := subRoot + "/" + sub
-				txtCheck1, _ := isDirectory(subRoot1)
-				if !txtCheck1 {
-					fullEmail := ReadAndApplyEmailFormat(subRoot1, fields)
-					message := WriteEmailInJDSON(fullEmail)
-					fmt.Println(message)
-				} else {
-					subFiles1, err := IOReadDir(subRoot1)
-					if err != nil {
-						log.Fatal(err)
-					}
-					for _, sub1 := range subFiles1 {
-						fmt.Println(sub1)
-						subRoot2 := subRoot1 + "/" + sub1
-						txtCheck2, _ := isDirectory(subRoot1)
-						if !txtCheck2 {
-							fullEmail := ReadAndApplyEmailFormat(subRoot2, fields)
-							message := WriteEmailInJDSON(fullEmail)
-							fmt.Println(message)
-						}
-						//else
-					}
-				}
-			}
-			fmt.Println(subFiles)
-		}
-	}
+	message := FileChecker(root, fields, files)
+	fmt.Println(message)
 
 }
