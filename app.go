@@ -54,42 +54,30 @@ func isDirectory(path string) (bool, error) {
 	return fileInfo.IsDir(), err
 }
 
-func headerNumber(lines []string, fields []string) int {
+func headerNumber(lines []string, fields []string) (int, []string) {
 	Counter := 0
 	b := make([]string, 0)
 	for i, line := range lines {
-		Band := "F"
-		Index := 0
-		check := "F"
 		for j := 0; j < len(fields); j++ {
 			if strings.Contains(line, fields[j]) {
-				if i > 0 {
-					check = checkSlice(b, fields[j])
-				}
+				check := checkSlice(b, fields[j])
 				if check == "F" {
-					Band = "T"
-					Index = j
-
+					b = append(b, line)
+					Counter = i
 					break
 				}
-				break
 			}
 		}
-		if Band == "T" && check == "F" {
-			b = append(b, fields[Index])
-			Counter = i
-			fmt.Println(Counter)
-		}
-
 	}
-	fmt.Println(b)
-	return Counter
+	//fmt.Println(Counter)
+	//fmt.Println(b)
+	return Counter, b
 }
 
 func checkSlice(slice []string, field string) string {
 	var result string = "F"
 	for _, x := range slice {
-		if x == field {
+		if strings.Contains(x, field) {
 			result = "T"
 			break
 		}
@@ -101,30 +89,23 @@ func emailHeaderCheck(body string, fields []string) string {
 	fmt.Println("entro")
 	finalString := ""
 
-	lines := strings.Split(strings.TrimSuffix(body, "\n"), "\n")
-	Counter := headerNumber(lines, fields)
+	lines := strings.Split(strings.TrimRight(body, "\n"), "\n")
+	Counter, b := headerNumber(lines, fields)
 	for i, line := range lines {
-		var Band string
-
-		for j := 0; j < len(fields); j++ {
-			if strings.Contains(line, fields[j]) && i < Counter {
-				Band = "F"
+		check := checkSlice(b, line)
+		if check == "F" && i < Counter && len(line) != 0 {
+			line = strings.Replace(line, "", " ", 1)
+			if i == 0 {
+				finalString += line
 				break
 			}
-			Band = "T"
-		}
-		if Band == "T" && len(line) != 0 {
-			if i < Counter {
-				line = strings.Replace(line, "", " ", 1)
-			}
-		}
-		if i == 0 {
-			finalString += line
+			finalString += line + "\n"
 		} else {
-			finalString += "\n" + line
+			finalString += line + "\n"
 		}
+
 	}
-	fmt.Println(finalString)
+	//fmt.Println(finalString)
 	return finalString
 }
 
@@ -244,23 +225,23 @@ func main() {
 	fmt.Println(files)
 
 	fields := []string{
-		"Message-ID: ",
-		"Date: ",
-		"From: ",
-		"To: ",
-		"Subject: ",
-		"Cc: ",
-		"Mime-Version: ",
-		"Content-Type: ",
-		"Content-Transfer-Encoding: ",
-		"Bcc: ",
-		"X-From: ",
-		"X-To: ",
-		"X-cc: ",
-		"X-bcc: ",
-		"X-Folder: ",
-		"X-Origin: ",
-		"X-FileName: ",
+		"Message-ID",
+		"Date",
+		"From",
+		"To",
+		"Subject",
+		"Cc",
+		"Mime-Version",
+		"Content-Type",
+		"Content-Transfer-Encoding",
+		"Bcc",
+		"X-From",
+		"X-To",
+		"X-cc",
+		"X-bcc",
+		"X-Folder",
+		"X-Origin",
+		"X-FileName",
 	}
 
 	message := FileChecker(root, fields, files)
