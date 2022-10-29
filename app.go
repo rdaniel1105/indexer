@@ -6,30 +6,51 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"net/mail"
 	"os"
 	"strings"
 )
 
 type Email struct {
-	MessageID               string
-	Date                    string
-	From                    string
-	To                      string
-	Subject                 string
-	Cc                      string
-	MimeVersion             string
-	ContentType             string
-	ContentTransferEncoding string
-	Bcc                     string
-	XFrom                   string
-	XTo                     string
-	Xcc                     string
-	Xbcc                    string
-	XFolder                 string
-	XOrigin                 string
-	XFileName               string
-	Body                    string
+	MessageID,
+	Date,
+	From,
+	To,
+	Subject,
+	Cc,
+	MimeVersion,
+	ContentType,
+	ContentTransferEncoding,
+	Bcc,
+	XFrom,
+	XTo,
+	Xcc,
+	Xbcc,
+	XFolder,
+	XOrigin,
+	XFileName,
+	Body string
+}
+
+var fields []string = []string{
+	"Message-ID",
+	"Date",
+	"From",
+	"To",
+	"Subject",
+	"Cc",
+	"Mime-Version",
+	"Content-Type",
+	"Content-Transfer-Encoding",
+	"Bcc",
+	"X-From",
+	"X-To",
+	"X-cc",
+	"X-bcc",
+	"X-Folder",
+	"X-Origin",
+	"X-FileName",
 }
 
 func IOReadDir(root string) ([]string, error) {
@@ -54,7 +75,7 @@ func isDirectory(path string) (bool, error) {
 	return fileInfo.IsDir(), err
 }
 
-func headerNumber(lines []string, fields []string) (int, []string) {
+func headerNumber(lines []string) (int, []string) {
 	Counter := 0
 	b := make([]string, 0)
 	for i, line := range lines {
@@ -85,12 +106,12 @@ func checkSlice(slice []string, field string) string {
 	return result
 }
 
-func emailHeaderCheck(body string, fields []string) string {
+func emailHeaderCheck(body string) string {
 	fmt.Println("entro")
 	finalString := ""
 
 	lines := strings.Split(strings.TrimRight(body, "\n"), "\n")
-	Counter, b := headerNumber(lines, fields)
+	Counter, b := headerNumber(lines)
 	for i, line := range lines {
 		check := checkSlice(b, line)
 		if check == "F" && i < Counter && len(line) != 0 {
@@ -109,13 +130,13 @@ func emailHeaderCheck(body string, fields []string) string {
 	return finalString
 }
 
-func ReadAndApplyEmailFormat(root string, fields []string) Email {
+func ReadAndApplyEmailFormat(root string) Email {
 	emailContent, err := ioutil.ReadFile(root)
 	if err != nil {
 		fmt.Println("File reading error", err)
 	}
 
-	correctedEmail := emailHeaderCheck(string(emailContent), fields)
+	correctedEmail := emailHeaderCheck(string(emailContent))
 	contentReader := strings.NewReader(correctedEmail)
 
 	emailMessage, err := mail.ReadMessage(contentReader)
@@ -151,56 +172,80 @@ func ReadAndApplyEmailFormat(root string, fields []string) Email {
 	return enron
 }
 
-func WriteEmailInJDSON(enron Email) string {
-	b, _ := json.Marshal(enron)
-	mydir, err := os.Getwd()
-	fullDirectory := mydir + "/emails.jdson"
-	if err != nil {
-		fmt.Println(err)
+func FinalFile(file []byte) []byte {
+	s := string(file)
+	finalString := ""
+	lines := strings.Split(strings.TrimRight(s, "\n"), "\n")
+	for _, line := range lines {
+		compareString := ""
+		for _, field := range fields {
+			if strings.Contains(field, "-") {
+				compareString = strings.Replace(field, "-", "", -1)
+				if !strings.Contains(line, compareString) {
+					break
+				}
+				line = strings.Replace(line, compareString, field, 1)
+			}
+		}
+		finalString += line
 	}
-	if _, err := os.Stat(fullDirectory); err == nil {
-		// path/to/whatever exists
-		f, err := os.OpenFile(fullDirectory, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			fmt.Println(err)
-		}
-		data := "\n" + `{ "index" : { "_index" : "myindex" } }` + "\n" + string(b)
-
-		defer f.Close()
-
-		_, err2 := f.WriteString(data)
-
-		if err2 != nil {
-			log.Fatal(err2)
-		}
-		return "Done!"
-	} else {
-		f, err1 := os.Create("emails.jdson")
-
-		if err1 != nil {
-			log.Fatal(err1)
-		}
-		data := `{ "index" : { "_index" : "myindex" } }` + "\n" + string(b)
-
-		defer f.Close()
-
-		_, err2 := f.WriteString(data)
-
-		if err2 != nil {
-			log.Fatal(err2)
-		}
-		return "Done!"
-	}
+	return []byte(finalString)
 }
 
-func FileChecker(root string, fields []string, files []string) string {
+func WriteEmailInJDSON(enron Email) string {
+	c, _ := json.Marshal(enron)
+	b := FinalFile(c)
+	//mydir, err := os.Getwd()
+	// fullDirectory := mydir + "/emails.ndjson"
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if _, err := os.Stat(fullDirectory); err == nil {
+	// 	// path/to/whatever exists
+	// 	f, err := os.OpenFile(fullDirectory, os.O_APPEND|os.O_WRONLY, 0644)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 	}
+	// 	data := "\n" + `{ "index" : { "_index" : "myindex" } }` + "\n" + string(b)
+
+	// 	defer f.Close()
+
+	// 	_, err2 := f.WriteString(data)
+
+	// 	if err2 != nil {
+	// 		log.Fatal(err2)
+	// 	}
+	// 	return "Done!"
+	// } else {
+	// 	f, err1 := os.Create("emails.ndjson")
+
+	// 	if err1 != nil {
+	// 		log.Fatal(err1)
+	// 	}
+	// 	data := `{ "index" : { "_index" : "myindex" } }` + "\n" + string(b)
+
+	// 	defer f.Close()
+
+	// 	_, err2 := f.WriteString(data)
+
+	// 	if err2 != nil {
+	// 		log.Fatal(err2)
+	// 	}
+	// 	return "Done!"
+	// }
+	data := `{ "index" : { "_index" : "myindex" } }` + "\n" + string(b)
+	fmt.Println(data)
+	//BulkData(data)
+	return "Done!"
+}
+
+func FileChecker(root string, files []string) string {
 	for _, file := range files {
 		fileRoot := root + "/" + file
 		dirCheck, _ := isDirectory(fileRoot)
 		if !dirCheck {
 			fmt.Println(fileRoot)
-			//checkedEmail := emailHeaderCheck(fileRoot, fields)
-			fullEmail := ReadAndApplyEmailFormat(fileRoot, fields)
+			fullEmail := ReadAndApplyEmailFormat(fileRoot)
 			message := WriteEmailInJDSON(fullEmail)
 			fmt.Println(message)
 		} else {
@@ -208,10 +253,39 @@ func FileChecker(root string, fields []string, files []string) string {
 			if err != nil {
 				log.Fatal(err)
 			}
-			FileChecker(fileRoot, fields, subFiles)
+			FileChecker(fileRoot, subFiles)
 		}
 	}
 	return "All files done!"
+}
+
+func BulkData(query string) string {
+	// query, err := ioutil.ReadFile("emails.ndjson")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	payload := strings.NewReader(query)
+
+	req, err := http.NewRequest("POST", "http://localhost:4080/api/_bulk", payload)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.SetBasicAuth("admin", "Complexpass#123")
+	req.Header.Set("Content-Type", "application-ndjson")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+	log.Println(resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Subido")
+	return string(body)
 }
 
 func main() {
@@ -222,29 +296,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(files)
+	//fmt.Println(files)
 
-	fields := []string{
-		"Message-ID",
-		"Date",
-		"From",
-		"To",
-		"Subject",
-		"Cc",
-		"Mime-Version",
-		"Content-Type",
-		"Content-Transfer-Encoding",
-		"Bcc",
-		"X-From",
-		"X-To",
-		"X-cc",
-		"X-bcc",
-		"X-Folder",
-		"X-Origin",
-		"X-FileName",
-	}
-
-	message := FileChecker(root, fields, files)
+	message := FileChecker(root, files)
 	fmt.Println(message)
 
 }
