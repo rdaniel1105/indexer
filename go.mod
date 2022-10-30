@@ -1,4 +1,4 @@
-module example/hello
+module example/indexer
 
 go 1.19
 
