@@ -13,8 +13,11 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
+// Email struct is the structure the emails will have
 type Email struct {
 	MessageID               string `json:"Message-ID"`
 	Date                    string
@@ -39,30 +42,32 @@ type Email struct {
 var (
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
 	memprofile = flag.String("memprofile", "", "write memory profile to `file`")
+
+	emailFields []string = []string{
+		"Message-ID",
+		"Date",
+		"From",
+		"To",
+		"Subject",
+		"Cc",
+		"Mime-Version",
+		"Content-Type",
+		"Content-Transfer-Encoding",
+		"Bcc",
+		"X-From",
+		"X-To",
+		"X-cc",
+		"X-bcc",
+		"X-Folder",
+		"X-Origin",
+		"X-FileName",
+	}
 )
 
-var emailFields []string = []string{
-	"Message-ID",
-	"Date",
-	"From",
-	"To",
-	"Subject",
-	"Cc",
-	"Mime-Version",
-	"Content-Type",
-	"Content-Transfer-Encoding",
-	"Bcc",
-	"X-From",
-	"X-To",
-	"X-cc",
-	"X-bcc",
-	"X-Folder",
-	"X-Origin",
-	"X-FileName",
-}
-
+// DirectoryReader reads the content inside the given path.
 func DirectoryReader(root string) ([]string, error) {
-	var files []string
+	files := make([]string, 0)
+
 	fileInfo, err := ioutil.ReadDir(root)
 	if err != nil {
 		return files, err
@@ -71,26 +76,31 @@ func DirectoryReader(root string) ([]string, error) {
 	for _, file := range fileInfo {
 		files = append(files, file.Name())
 	}
+
 	return files, nil
 }
 
+// DirectoryChecker checks if the path given is a directory.
 func DirectoryChecker(path string) (bool, error) {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
 		return false, err
 	}
 
-	return fileInfo.IsDir(), err
+	return fileInfo.IsDir(), nil
 }
 
+// GetHeaderNumber gets the correct number of headers using CheckElementInSlice() to make sure they're not repeated.
 func GetHeaderNumber(lines []string) (int, []string) {
 	counter := 0
 	emailFieldSlice := make([]string, 0)
+
 	for i, line := range lines {
 		for j := 0; j < len(emailFields); j++ {
 			if !strings.Contains(line, emailFields[j]) {
 				continue
 			}
+
 			check := CheckElementInSlice(emailFieldSlice, emailFields[j])
 			if check == "F" {
 				emailFieldSlice = append(emailFieldSlice, line)
@@ -99,25 +109,29 @@ func GetHeaderNumber(lines []string) (int, []string) {
 			}
 		}
 	}
+
 	return counter, emailFieldSlice
 }
 
+// CheckElementInSlice checks if a header is being repeated in the email body.
 func CheckElementInSlice(slice []string, field string) string {
-	var result string = "F"
+	result := "F"
 	for _, x := range slice {
 		if strings.Contains(x, field) {
 			result = "T"
 			break
 		}
 	}
+
 	return result
 }
 
+// EmailHeaderCheck checks email format (in case of having multiline headers)
 func EmailHeaderCheck(body string) string {
 	correctedEmail := ""
-
 	lines := strings.Split(strings.TrimRight(body, "\n"), "\n")
 	counter, emailFieldSlice := GetHeaderNumber(lines)
+
 	for i, line := range lines {
 		check := CheckElementInSlice(emailFieldSlice, line)
 		if check == "F" && i < counter && len(line) != 0 {
@@ -132,10 +146,12 @@ func EmailHeaderCheck(body string) string {
 		}
 
 	}
+
 	return correctedEmail
 }
 
-func ReadAndApplyEmailFormat(root string) Email {
+// ReadAndCreateEmailStruct reads the text file content and creates the corresponding structure.
+func ReadAndCreateEmailStruct(root string) Email {
 	emailContent, err := ioutil.ReadFile(root)
 	if err != nil {
 		fmt.Println("File reading error", err)
@@ -176,59 +192,62 @@ func ReadAndApplyEmailFormat(root string) Email {
 	return email
 }
 
-func WriteEmailInJDSON(fullEmail Email) string {
+// WriteEmailInNDJSON writes the email with the ndjson format to the file
+func WriteEmailInNDJSON(fullEmail Email) string {
 	jsonEmail, _ := json.Marshal(fullEmail)
-	myDirectory, err := os.Getwd()
-	fullDirectory := myDirectory + "/emails1.ndjson"
-	if err != nil {
-		fmt.Println(err)
-	}
-	if _, err := os.Stat(fullDirectory); err == nil {
-		// path/to/whatever exists
-		file, err := os.OpenFile(fullDirectory, os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			fmt.Println(err)
-		}
-		data := "\n" + `{ "index" : { "_index" : "myindex" } }` + "\n" + string(jsonEmail)
+	// myDirectory, err := os.Getwd()
+	// fullDirectory := myDirectory + "/emails1.ndjson"
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// if _, err := os.Stat(fullDirectory); err == nil {
+	// 	// path/to/whatever exists
+	// 	file, err := os.OpenFile(fullDirectory, os.O_APPEND|os.O_WRONLY, 0644)
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 	}
+	// 	data := "\n" + `{ "index" : { "_index" : "myindex" } }` + "\n" + string(jsonEmail)
 
-		defer file.Close()
+	// 	defer file.Close()
 
-		_, err2 := file.WriteString(data)
+	// 	_, err2 := file.WriteString(data)
+	// 	if err2 != nil {
+	// 		log.Fatal(err2)
+	// 	}
+	// 	//BulkData(data)
+	// 	return "Done!"
+	// }
 
-		if err2 != nil {
-			log.Fatal(err2)
-		}
-		//BulkData(data)
-		return "Done!"
-	}
+	// file, err1 := os.Create("emails1.ndjson")
 
-	file, err1 := os.Create("emails1.ndjson")
+	// if err1 != nil {
+	// 	log.Fatal(err1)
+	// }
+	// data := `{ "index" : { "_index" : "myindex" } }` + "\n" + string(jsonEmail)
 
-	if err1 != nil {
-		log.Fatal(err1)
-	}
+	// defer file.Close()
+
+	// _, err2 := file.WriteString(data)
+
+	// if err2 != nil {
+	// 	log.Fatal(err2)
+	// }
 	data := `{ "index" : { "_index" : "myindex" } }` + "\n" + string(jsonEmail)
 
-	defer file.Close()
-
-	_, err2 := file.WriteString(data)
-
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-	//BulkData(data)
-	return "Done!"
+	return data
 }
 
+// FileChecker checks if the directory contains either a file or another directory
 func FileChecker(root string, files []string) string {
 	for _, file := range files {
 		fileRoot := root + "/" + file
 		directoryCheck, _ := DirectoryChecker(fileRoot)
 		if !directoryCheck {
 			fmt.Println(fileRoot)
-			fullEmail := ReadAndApplyEmailFormat(fileRoot)
-			confirmationMessage := WriteEmailInJDSON(fullEmail)
-			fmt.Println(confirmationMessage)
+			fullEmail := ReadAndCreateEmailStruct(fileRoot)
+			data := WriteEmailInNDJSON(fullEmail)
+			BulkData(data)
+			fmt.Println("Done!")
 		} else {
 			subFiles, err := DirectoryReader(fileRoot)
 			if err != nil {
@@ -240,10 +259,18 @@ func FileChecker(root string, files []string) string {
 	return "All files done!"
 }
 
-func BulkData(query string) string {
-	payload := strings.NewReader(query)
+// BulkData indexes the data to the database
+func BulkData(query string) {
 
-	req, err := http.NewRequest("POST", "http://localhost:4080/api/_bulk", payload)
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	payload := strings.NewReader(query)
+	zincSearchURL := os.Getenv("ZincSearchURL")
+
+	req, err := http.NewRequest(http.MethodPost, zincSearchURL, payload)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -255,14 +282,17 @@ func BulkData(query string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer resp.Body.Close()
+
 	log.Println(resp.StatusCode)
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	fmt.Println("Uploaded!")
-	return string(body)
+	fmt.Println(string(body))
 }
 
 func main() {
