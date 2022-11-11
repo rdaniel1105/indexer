@@ -11,7 +11,7 @@ import (
 )
 
 // ReadAndCreateEmailStruct reads the text file content and creates the corresponding structure.
-func ReadAndCreateEmailStruct(root string) models.Email {
+func ReadAndCreateEmailStruct(root string) (models.Email, bool) {
 	emailContent, err := ioutil.ReadFile(root)
 	if err != nil {
 		fmt.Println("File reading error", err)
@@ -52,5 +52,10 @@ func ReadAndCreateEmailStruct(root string) models.Email {
 		XFileName:               header.Get(models.EmailFields[16]),
 		Body:                    string(body)}
 
-	return email
+	repeated := RepeatedEmailChecker(email.MessageID)
+	if repeated {
+		return email, true
+	}
+
+	return email, false
 }
