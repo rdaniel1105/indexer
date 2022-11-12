@@ -4,7 +4,7 @@ var (
 	emailBodies []string
 )
 
-// RepeatedEmailChecker makes sure that email has not been created before, so it is not uploaded twice.
+// RepeatedEmailChecker checks if the emails has been added already, to avoid duplicity.
 func RepeatedEmailChecker(newBody string) bool {
 
 	for _, body := range emailBodies {

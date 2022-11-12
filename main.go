@@ -46,7 +46,7 @@ func FileChecker(root string, files []string) string {
 
 			emailSender <- helpers.WriteEmailInNDJSON(fullEmail)
 
-			fmt.Println("Done!")
+			fmt.Println("Added!")
 		} else {
 			subDirectories, err := helpers.DirectoryReader(fileRoot)
 			if err != nil {
