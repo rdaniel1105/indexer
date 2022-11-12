@@ -117,7 +117,7 @@ func main() {
 		return
 	}
 
-	root := os.Args[1] + "/maildir"
+	root := "../" + os.Args[1] + "/maildir"
 
 	files, err := helpers.DirectoryReader(root)
 	if err != nil {
