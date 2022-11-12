@@ -118,12 +118,14 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	if len(os.Args) == 1 {
+	if len(flag.Args()) == 0 {
 		log.Fatal("No files to process")
 		return
 	}
 
-	root := "../" + os.Args[1] + "/maildir"
+	directoryToUpload := flag.Arg(0)
+
+	root := "../" + directoryToUpload + "/maildir"
 
 	files, err := helpers.DirectoryReader(root)
 	if err != nil {

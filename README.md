@@ -3,5 +3,5 @@
 # Notes:
 
 ```
-It is going to create a jdson ready to index it to a database
+Execute the indexer program from the terminal, indicating the name of the directory you want to index. (Assuming the folder is one level above the program)
 ```
