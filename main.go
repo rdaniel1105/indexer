@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -44,7 +45,12 @@ func FileChecker(root string, files []string) string {
 				continue
 			}
 
-			emailSender <- helpers.WriteEmailInNDJSON(fullEmail)
+			jsonEmail, err := json.Marshal(fullEmail)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			emailSender <- string(jsonEmail)
 
 			fmt.Println("Added!")
 		} else {
@@ -79,7 +85,7 @@ func EmailsChunkSender() {
 				break
 			}
 
-			emailsChunk += "\n" + <-emailSender
+			emailsChunk += <-emailSender + "\n"
 		}
 
 		if !open {
