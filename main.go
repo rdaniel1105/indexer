@@ -149,8 +149,7 @@ func main() {
 			log.Fatal("could not write memory profile: ", err)
 		}
 
-		f.Close()
-		if err = pprof.WriteHeapProfile(f); err != nil {
+		if err = f.Close(); err != nil {
 			log.Fatal("could not close the file: ", err)
 		}
 	}
