@@ -16,17 +16,16 @@ var (
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
 	memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 
-	wg          sync.WaitGroup
-	emailSender = make(chan string, 20000)
-	done        = make(chan bool)
-	// EmailReceiver = make(chan string, 20000)
-	max = 20000
-	i   = 0
+	wg sync.WaitGroup
 
-	// emailsToUpload []string
+	emailSender = make(chan string, 20000)
+	max         = 100
+	emailsChunk string
 )
 
 // FileChecker checks if the directory contains either a file or another directory
+// in case it finds a file, it will send it for it to be opened and read, then it will
+// be written in ndjson format and returned to stack it and send it in a chunk.
 func FileChecker(root string, files []string) string {
 	for _, file := range files {
 		fileRoot := root + "/" + file
@@ -45,46 +44,55 @@ func FileChecker(root string, files []string) string {
 				continue
 			}
 
-			// emailsToUpload = append(emailsToUpload, helpers.WriteEmailInNDJSON(fullEmail))
 			emailSender <- helpers.WriteEmailInNDJSON(fullEmail)
 
 			fmt.Println("Done!")
 		} else {
-			subFiles, err := helpers.DirectoryReader(fileRoot)
+			subDirectories, err := helpers.DirectoryReader(fileRoot)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			FileChecker(fileRoot, subFiles)
+			FileChecker(fileRoot, subDirectories)
 		}
 	}
 
 	return "All files done!"
 }
 
-// DataBulk asdasd
-func DataBulk(done <-chan bool) {
+// EmailsChunkSender receives the emails and then sends them ready to bulk in chunks of 100.
+func EmailsChunkSender() {
 
-	select {
-	case <-done:
-		break
-	default:
-		for i = 0; i < max; i++ {
-			emailsChunk := ""
+	for {
+		_, open := <-emailSender
+		emailsChunk = ""
 
-			for j := 0; j < max; j++ {
-				emailsChunk += "\n" + <-emailSender
+		for j := 0; j < max; j++ {
+			if !open {
+				wg.Add(1)
+
+				go func() {
+					defer wg.Done()
+					helpers.BulkData(emailsChunk)
+				}()
+
+				break
 			}
 
-			wg.Add(1)
-
-			go func() {
-				defer wg.Done()
-				helpers.BulkData(emailsChunk)
-			}()
-			max += max
+			emailsChunk += "\n" + <-emailSender
 		}
-		wg.Wait()
+
+		if !open {
+			break
+		}
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			helpers.BulkData(emailsChunk)
+		}()
+
 	}
 
 }
@@ -96,42 +104,54 @@ func main() {
 		if err != nil {
 			log.Fatal("could not create CPU profile: ", err)
 		}
+
 		if err := pprof.StartCPUProfile(f); err != nil {
 			log.Fatal("could not start CPU profile: ", err)
 		}
+
 		defer pprof.StopCPUProfile()
 	}
 
-	root := "../enron_mail_20110402/maildir"
-	// if len(os.Args) == 1 {
-	// 	log.Fatal("No files to process")
-	// 	return
-	// }
+	if len(os.Args) == 1 {
+		log.Fatal("No files to process")
+		return
+	}
 
-	//root := os.Args[1]
+	root := os.Args[1] + "/maildir"
 
 	files, err := helpers.DirectoryReader(root)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	go DataBulk(done)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		EmailsChunkSender()
+	}()
 
 	message := FileChecker(root, files)
+
 	close(emailSender)
+
 	fmt.Println(message)
 
-	close(done)
+	wg.Wait()
 
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
 		if err != nil {
 			log.Fatal("could not create memory profile: ", err)
 		}
-		runtime.GC() // get up-to-date statistics
-		if err := pprof.WriteHeapProfile(f); err != nil {
+
+		runtime.GC()
+		if err = pprof.WriteHeapProfile(f); err != nil {
 			log.Fatal("could not write memory profile: ", err)
 		}
+
 		f.Close()
+		if err = pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not close the file: ", err)
+		}
 	}
 }

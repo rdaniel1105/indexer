@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-// DirectoryReader reads the content inside the given path.
+// DirectoryReader reads the content inside the given path and return them in a string array.
 func DirectoryReader(root string) ([]string, error) {
 	files := make([]string, 0)
 

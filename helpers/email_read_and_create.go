@@ -52,7 +52,7 @@ func ReadAndCreateEmailStruct(root string) (models.Email, bool) {
 		XFileName:               header.Get(models.EmailFields[16]),
 		Body:                    string(body)}
 
-	repeated := RepeatedEmailChecker(email.MessageID)
+	repeated := RepeatedEmailChecker(email.Body)
 	if repeated {
 		return email, true
 	}
