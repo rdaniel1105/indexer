@@ -6,11 +6,11 @@ import (
 )
 
 // CheckElementInSlice checks if a header is being repeated in the email body.
-func CheckElementInSlice(emailFieldSlice []string, field string) string {
-	result := "F"
+func CheckElementInSlice(emailFieldSlice []string, field string) bool {
+	result := false
 	for _, x := range emailFieldSlice {
 		if strings.Contains(x, field) {
-			result = "T"
+			result = true
 
 			break
 		}
@@ -24,12 +24,12 @@ func EmailHeaderCheck(body string) string {
 	correctedEmail := ""
 	lines := strings.Split(strings.TrimRight(body, "\n"), "\n")
 
-	counter, emailFieldSlice := GetHeaderNumber(lines)
+	numOfHeaders, emailFieldSlice := GetHeaderNumber(lines)
 
 	for i, line := range lines {
 		check := CheckElementInSlice(emailFieldSlice, line)
 
-		if check == "F" && i < counter && len(line) != 0 {
+		if !check && i < numOfHeaders && len(line) != 0 {
 			line = strings.Replace(line, "", " ", 1)
 			if i == 0 {
 				correctedEmail += line
@@ -37,9 +37,10 @@ func EmailHeaderCheck(body string) string {
 			}
 
 			correctedEmail += line + "\n"
-		} else {
-			correctedEmail += line + "\n"
+			continue
 		}
+		correctedEmail += line + "\n"
+
 	}
 
 	return correctedEmail
@@ -57,7 +58,7 @@ func GetHeaderNumber(lines []string) (int, []string) {
 			}
 
 			check := CheckElementInSlice(emailFieldSlice, models.EmailFields[j])
-			if check == "F" {
+			if !check {
 				emailFieldSlice = append(emailFieldSlice, line)
 				counter = i
 				break

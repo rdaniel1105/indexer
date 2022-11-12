@@ -1,19 +1,20 @@
 package helpers
 
 var (
-	emailIDs []string
+	emailBodies []string
 )
 
 // RepeatedEmailChecker makes sure that email has not been created before, so it is not uploaded twice.
-func RepeatedEmailChecker(id string) bool {
+func RepeatedEmailChecker(newBody string) bool {
 
-	for _, emailID := range emailIDs {
-		if emailID == id {
+	for _, body := range emailBodies {
+		if body == newBody {
 
 			return true
 		}
 	}
-	emailIDs = append(emailIDs, id)
+
+	emailBodies = append(emailBodies, newBody)
 
 	return false
 }
