@@ -1,6 +1,6 @@
-## This is a file indexer
+# This is a file indexer
 
-# Notes:
+## Notes:
 
 ```
 Execute the indexer program from the terminal, indicating the name of the directory you want to index. (Assuming the folder is one level above the program)
