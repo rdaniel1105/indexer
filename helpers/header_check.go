@@ -29,18 +29,16 @@ func EmailHeaderCheck(body string) string {
 	for i, line := range lines {
 		check := CheckElementInSlice(emailFieldSlice, line)
 
-		if !check && i < numOfHeaders && len(line) != 0 {
-			line = strings.Replace(line, "", " ", 1)
-			if i == 0 {
-				correctedEmail += line
-				break
-			}
-
-			correctedEmail += line + "\n"
+		if i == 0 {
+			correctedEmail += line
 			continue
 		}
-		correctedEmail += line + "\n"
 
+		if !check && i < numOfHeaders && len(line) != 0 {
+			line = strings.Replace(line, "", " ", 1)
+		}
+
+		correctedEmail += line + "\n"
 	}
 
 	return correctedEmail

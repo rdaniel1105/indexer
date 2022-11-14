@@ -21,7 +21,6 @@ func ReadAndCreateEmailStruct(root string) (models.Email, bool) {
 	contentReader := strings.NewReader(correctedEmail)
 	emailMessage, err := mail.ReadMessage(contentReader)
 	if err != nil {
-		fmt.Println("error aca")
 		log.Fatal(err)
 	}
 
