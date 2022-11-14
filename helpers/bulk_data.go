@@ -17,16 +17,23 @@ var (
 	errDoReq        = errors.New("Do(req)")
 	errReadingBody  = errors.New("reading body from request")
 	errCloseResBody = errors.New("closing response body")
+	errGoDotenvLoad = errors.New("godotenv load")
+
+	_defaultZincSearchURL = "http://localhost:4080/api/mamuroemail/_multi"
 )
 
 // BulkData indexes the data to the database
 func BulkData(query string) {
 	err := godotenv.Load()
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(errGoDotenvLoad, err)
 	}
 
 	zincSearchURL := os.Getenv("ZincSearchURL")
+	if zincSearchURL == "" {
+		zincSearchURL = _defaultZincSearchURL
+	}
+
 	admin := os.Getenv("ADMIN")
 	password := os.Getenv("PASSWORD")
 
@@ -54,7 +61,7 @@ func BulkData(query string) {
 	}
 
 	log.Println(resp.StatusCode)
-	fmt.Println("Uploaded!")
+	fmt.Println("The chunk of emails has been ploaded!")
 	fmt.Println(string(body))
 }
 

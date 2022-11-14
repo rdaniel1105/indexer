@@ -13,6 +13,10 @@ import (
 	"example/indexer/helpers"
 )
 
+const (
+	max = 100
+)
+
 var (
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
 	memprofile = flag.String("memprofile", "", "write memory profile to `file`")
@@ -20,7 +24,7 @@ var (
 	wg sync.WaitGroup
 
 	emailSender = make(chan string, 20000)
-	max         = 100
+
 	emailsChunk string
 )
 
@@ -37,11 +41,11 @@ func FileChecker(root string, files []string) string {
 		}
 
 		if !directoryCheck {
-			fmt.Println(fileRoot)
+			fmt.Printf("Reading: %v \n", fileRoot)
 
 			fullEmail, repeatedEmail := helpers.ReadAndCreateEmailStruct(fileRoot)
 			if repeatedEmail {
-				fmt.Println("Repeated!")
+				fmt.Println("Repeated email was found!")
 				continue
 			}
 
@@ -52,23 +56,23 @@ func FileChecker(root string, files []string) string {
 
 			emailSender <- string(jsonEmail)
 
-			fmt.Println("Added!")
-		} else {
-			subDirectories, err := helpers.DirectoryReader(fileRoot)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			FileChecker(fileRoot, subDirectories)
+			fmt.Println("The file has been read!")
+			continue
 		}
+
+		subDirectories, err := helpers.DirectoryReader(fileRoot)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		FileChecker(fileRoot, subDirectories)
 	}
 
-	return "All files done!"
+	return "All files have been read!"
 }
 
 // EmailsChunkSender receives the emails and then sends them ready to bulk in chunks of 100.
 func EmailsChunkSender() {
-
 	for {
 		_, open := <-emailSender
 		emailsChunk = ""
@@ -98,9 +102,7 @@ func EmailsChunkSender() {
 			defer wg.Done()
 			helpers.BulkData(emailsChunk)
 		}()
-
 	}
-
 }
 
 func main() {
