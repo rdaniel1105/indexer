@@ -9,7 +9,6 @@ func RepeatedEmailChecker(newBody string) bool {
 
 	for _, body := range emailBodies {
 		if body == newBody {
-
 			return true
 		}
 	}

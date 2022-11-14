@@ -11,7 +11,7 @@ func DirectoryReader(root string) ([]string, error) {
 
 	fileInfo, err := ioutil.ReadDir(root)
 	if err != nil {
-		return files, err
+		return nil, err
 	}
 
 	for _, file := range fileInfo {

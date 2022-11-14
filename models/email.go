@@ -3,15 +3,15 @@ package models
 // Email struct is the structure the emails will have
 type Email struct {
 	MessageID               string `json:"Message-ID"`
-	Date                    string
-	From                    string
-	To                      string
-	Subject                 string
-	Cc                      string
+	Date                    string `json:"Date"`
+	From                    string `json:"From"`
+	To                      string `json:"To"`
+	Subject                 string `json:"Subject"`
+	Cc                      string `json:"Cc"`
 	MimeVersion             string `json:"Mime-Version"`
 	ContentType             string `json:"Content-Type"`
 	ContentTransferEncoding string `json:"Content-Transfer-Encoding"`
-	Bcc                     string
+	Bcc                     string `json:"Bcc"`
 	XFrom                   string `json:"X-From"`
 	XTo                     string `json:"X-To"`
 	Xcc                     string `json:"X-cc"`
@@ -19,7 +19,7 @@ type Email struct {
 	XFolder                 string `json:"X-Folder"`
 	XOrigin                 string `json:"X-Origin"`
 	XFileName               string `json:"X-FileName"`
-	Body                    string
+	Body                    string `json:"Body"`
 }
 
 // EmailFields represents the fields that the email will contain.
