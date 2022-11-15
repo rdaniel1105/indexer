@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"example/indexer/helpers"
 	"flag"
 	"fmt"
 	"log"
@@ -9,8 +10,6 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"sync"
-
-	"example/indexer/helpers"
 )
 
 const (
