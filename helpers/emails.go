@@ -5,31 +5,34 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/mail"
 	"path/filepath"
 	"strings"
 )
 
-// ReadAndCreateEmailStruct reads the text file content and creates the corresponding structure.
-func ReadAndCreateEmailStruct(root string) (models.Email, bool) {
-	emailContent, err := ioutil.ReadFile(filepath.Clean(root))
+var (
+	emailBodies []string
+)
+
+// CreateEmailStruct reads the text file content and creates the corresponding email structure.
+func CreateEmailStruct(path string) (models.Email, bool, error) {
+	emailContent, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
-		fmt.Println("File reading error", err)
+		return models.Email{}, false, fmt.Errorf("file reading error: %w", err)
 	}
 
 	correctedEmail := EmailHeaderCheck(string(emailContent))
 	contentReader := strings.NewReader(correctedEmail)
 	emailMessage, err := mail.ReadMessage(contentReader)
 	if err != nil {
-		log.Fatal(err)
+		return models.Email{}, false, fmt.Errorf("mail message reading error: %w", err)
 	}
 
 	header := emailMessage.Header
 
 	body, err := io.ReadAll(emailMessage.Body)
 	if err != nil {
-		log.Fatal(err)
+		return models.Email{}, false, fmt.Errorf("mail body reading error: %w", err)
 	}
 
 	email := models.Email{
@@ -54,8 +57,21 @@ func ReadAndCreateEmailStruct(root string) (models.Email, bool) {
 
 	repeatedEmail := RepeatedEmailChecker(email.Body)
 	if repeatedEmail {
-		return email, true
+		return email, true, nil
 	}
 
-	return email, false
+	return email, false, nil
+}
+
+// RepeatedEmailChecker checks if the emails has been added already, to avoid duplicity.
+func RepeatedEmailChecker(newBody string) bool {
+	for _, body := range emailBodies {
+		if body == newBody {
+			return true
+		}
+	}
+
+	emailBodies = append(emailBodies, newBody)
+
+	return false
 }
