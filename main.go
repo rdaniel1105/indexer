@@ -42,7 +42,11 @@ func FileChecker(root string, files []string) string {
 		if !directoryCheck {
 			fmt.Printf("Reading: %v \n", fileRoot)
 
-			fullEmail, repeatedEmail := helpers.ReadAndCreateEmailStruct(fileRoot)
+			fullEmail, repeatedEmail, err := helpers.CreateEmailStruct(fileRoot)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			if repeatedEmail {
 				fmt.Println("Repeated email was found!")
 				continue
@@ -143,9 +147,9 @@ func main() {
 
 	close(emailSender)
 
-	fmt.Println(message)
-
 	wg.Wait()
+
+	fmt.Println(message)
 
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
