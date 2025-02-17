@@ -8,61 +8,85 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/joho/godotenv"
+	"sync"
+	"time"
 )
 
 var (
-	errNewReq       = errors.New("NewRequest")
-	errDoReq        = errors.New("Do(req)")
-	errReadingBody  = errors.New("reading body from request")
-	errCloseResBody = errors.New("closing response body")
-	errGoDotenvLoad = errors.New("godotenv load")
+	errNewReq       = errors.New("creating request failed")
+	errDoReq        = errors.New("doing request failed")
+	errReadingBody  = errors.New("reading body from request failed")
+	errCloseResBody = errors.New("closing response body failed")
 
 	_defaultZincSearchURL = "http://localhost:4080/api/mamuroemail/_multi"
-)
 
-// BulkData indexes the data to the database
-func BulkData(query string) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal(errGoDotenvLoad, err)
+	httpClient = &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+			DisableKeepAlives:   false,
+			DisableCompression:  false,
+			ForceAttemptHTTP2:   true,
+		},
 	}
 
-	zincSearchURL := os.Getenv("ZincSearchURL")
+	admin    string
+	password string
+
+	zincSearchURL string
+
+	setCredentialsOnce sync.Once
+)
+
+func setCredentials() {
+	zincSearchURL = os.Getenv("ZINC_SEARCH_URL")
 	if zincSearchURL == "" {
 		zincSearchURL = _defaultZincSearchURL
 	}
 
-	admin := os.Getenv("ADMIN")
-	password := os.Getenv("PASSWORD")
+	admin = os.Getenv("ADMIN")
+	password = os.Getenv("PASSWORD")
+}
 
-	payload := strings.NewReader(query)
+// BulkData indexes the data to the database
+func BulkData(query string) error {
+	if query == "" {
+		return nil
+	}
 
-	req, err := http.NewRequest(http.MethodPost, zincSearchURL, payload)
+	setCredentialsOnce.Do(setCredentials)
+
+	req, err := http.NewRequest(http.MethodPost, zincSearchURL, strings.NewReader(query))
 	if err != nil {
-		log.Fatal(errNewReq, err)
+		return fmt.Errorf("%w: %v", errNewReq, err)
 	}
 
 	req.SetBasicAuth(admin, password)
-	req.Header.Set("Content-Type", "application-ndjson")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36")
+	req.Header.Set("Content-Type", "application/x-ndjson")
+	req.Header.Set("Connection", "keep-alive")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
-		log.Fatal(errDoReq, err)
+		return fmt.Errorf("%w: %v", errDoReq, err)
 	}
-
 	defer closeResponseBody(resp)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println(errReadingBody, err)
+		return fmt.Errorf("%w: %v", errReadingBody, err)
 	}
 
-	log.Println(resp.StatusCode)
-	fmt.Println("The chunk of emails has been ploaded!")
-	fmt.Println(string(body))
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("bulk request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		log.Printf("Bulk upload successful: %s", string(body))
+	}
+
+	return nil
 }
 
 func closeResponseBody(response *http.Response) {

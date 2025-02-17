@@ -22,23 +22,23 @@ type Email struct {
 	Body                    string `json:"Body"`
 }
 
-// EmailFields represents the fields that the email will contain.
-var EmailFields = []string{
-	"Message-ID",
-	"Date",
-	"From",
-	"To",
-	"Subject",
-	"Cc",
-	"Mime-Version",
-	"Content-Type",
-	"Content-Transfer-Encoding",
-	"Bcc",
-	"X-From",
-	"X-To",
-	"X-cc",
-	"X-bcc",
-	"X-Folder",
-	"X-Origin",
-	"X-FileName",
+// EmailFields representa los campos que el email contendrá con su posición típica
+var EmailFieldsMap = map[string]struct{}{
+	"Message-ID":                {},
+	"Date":                      {},
+	"From":                      {},
+	"To":                        {},
+	"Subject":                   {},
+	"Cc":                        {},
+	"Mime-Version":              {},
+	"Content-Type":              {},
+	"Content-Transfer-Encoding": {},
+	"Bcc":                       {},
+	"X-From":                    {},
+	"X-To":                      {},
+	"X-cc":                      {},
+	"X-bcc":                     {},
+	"X-Folder":                  {},
+	"X-Origin":                  {},
+	"X-FileName":                {},
 }

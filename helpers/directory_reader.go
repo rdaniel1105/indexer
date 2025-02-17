@@ -1,14 +1,12 @@
 package helpers
 
-import (
-	"io/ioutil"
-)
+import "os"
 
 // DirectoryReader reads the content inside the given path and return them in a string array.
 func DirectoryReader(path string) ([]string, error) {
 	files := make([]string, 0)
 
-	fileInfo, err := ioutil.ReadDir(path)
+	fileInfo, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}

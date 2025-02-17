@@ -5,65 +5,68 @@ import (
 	"strings"
 )
 
-// EmailHeaderCheck checks the email's format (in case of having multiline headers).
-func EmailHeaderCheck(body string) string {
-	correctedEmail := ""
-	lines := strings.Split(strings.TrimRight(body, "\n"), "\n")
+const (
+	jumpLine        = "\n"
+	headerSeparator = ":"
+)
 
-	numberOfHeaders, emailFieldSlice := GetHeaderNumber(lines)
+// emailHeaderCheck fixes the email format in case it has headers in multiple lines.
+func emailHeaderCheck(body string) string {
+	var builder strings.Builder
 
-	for i, line := range lines {
-		check := CheckElementInSlice(emailFieldSlice, line)
+	lines := strings.Split(strings.TrimRight(body, jumpLine), jumpLine)
 
-		if i == 0 {
-			correctedEmail += line
-			continue
-		}
-
-		if !check && i < numberOfHeaders && len(line) != 0 {
-			line = strings.Replace(line, "", " ", 1)
-		}
-
-		correctedEmail += line + "\n"
-	}
-
-	return correctedEmail
-}
-
-// GetHeaderNumber gets the correct number of headers using CheckElementInSlice() to make sure we do not re-set a
-// header when having a header in the email body.
-func GetHeaderNumber(lines []string) (int, []string) {
-	counter := 0
-	emailFieldSlice := make([]string, 0)
+	// find the end of the headers
+	headerEndIndex := findHeaderEnd(lines)
 
 	for i, line := range lines {
-		for j := 0; j < len(models.EmailFields); j++ {
-			if !strings.Contains(line, models.EmailFields[j]) {
-				continue
-			}
+		processedLine := processLine(line, i, headerEndIndex)
 
-			check := CheckElementInSlice(emailFieldSlice, models.EmailFields[j])
-			if !check {
-				emailFieldSlice = append(emailFieldSlice, line)
-				counter = i
-				break
-			}
+		builder.WriteString(processedLine)
+
+		// add jump line except for the last line
+		if i < len(lines)-1 {
+			builder.WriteString(jumpLine)
 		}
 	}
 
-	return counter, emailFieldSlice
+	return builder.String()
 }
 
-// CheckElementInSlice checks if a header is being repeated in the email body.
-func CheckElementInSlice(emailFieldSlice []string, field string) bool {
-	repeated := false
-	for _, x := range emailFieldSlice {
-		if strings.Contains(x, field) {
-			repeated = true
-
-			break
+// findHeaderEnd finds the index where the headers end
+func findHeaderEnd(lines []string) int {
+	for i, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			return i
 		}
 	}
 
-	return repeated
+	return len(lines)
+}
+
+// processLine processes a single line of the email
+func processLine(line string, currentIndex, headerEndIndex int) string {
+	// if we are after the headers, return the line without modification
+	if currentIndex >= headerEndIndex {
+		return line
+	}
+
+	// if the line already starts with space or tab, no modify
+	if strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") {
+		return line
+	}
+
+	// find the header separator ':'
+	colonIndex := strings.Index(line, headerSeparator)
+	if colonIndex == -1 {
+		return " " + line
+	}
+
+	// extract and verify the header name
+	headerName := strings.TrimSpace(line[:colonIndex])
+	if _, exists := models.EmailFieldsMap[headerName]; exists {
+		return line
+	}
+
+	return " " + line
 }
