@@ -9,7 +9,7 @@ Built originally to index the [Enron email corpus](https://www.cs.cmu.edu/~enron
 - Recursively walks a maildir-style directory tree
 - Parses each file as an RFC 822 email (Message-ID, From, To, Subject, headers, body)
 - Repairs common header continuation bugs in Enron-style dumps before parsing
-- Deduplicates identical bodies via a SHA-256 hash table
+- Deduplicates at the storage layer by using each email's `Message-ID` as the ZincSearch document `_id` (re-indexing the same email replaces the existing record instead of duplicating it)
 - Buffers records into ndjson chunks (capped at 5,000 entries or 10 MB, whichever comes first)
 - Posts chunks concurrently to ZincSearch's `/_multi` bulk endpoint with a semaphore-bounded worker pool
 
@@ -19,7 +19,7 @@ Built originally to index the [Enron email corpus](https://www.cs.cmu.edu/~enron
 main.go
 ├── helpers/
 │   ├── directory_reader.go  / directory_checker.go   Filesystem traversal
-│   ├── emails.go     RFC 822 parsing + dedup
+│   ├── emails.go     RFC 822 parsing
 │   ├── headers.go    Repair multi-line header bugs before mail.ReadMessage()
 │   └── bulk_data.go  Buffered ndjson chunker + ZincSearch HTTP client
 └── models/

@@ -26,6 +26,8 @@ const (
 
 var (
 	errGoDotenvLoad = errors.New("loading godotenv failed")
+
+	indexName = "emails"
 )
 
 type chunkState struct {
@@ -45,6 +47,8 @@ func initEnv() {
 	if err != nil {
 		log.Fatal(errGoDotenvLoad, err)
 	}
+
+	indexName = helpers.IndexName()
 }
 
 func emailsChunkSender(emailSender chan string, wg *sync.WaitGroup) {
@@ -133,14 +137,10 @@ func fileChecker(root string, files []string, emailSender chan string) {
 }
 
 func processEmail(fileRoot string, emailSender chan string) {
-	fullEmail, repeatedEmail, err := helpers.CreateEmailStruct(fileRoot)
+	fullEmail, err := helpers.CreateEmailStruct(fileRoot)
 	if err != nil {
 		fmt.Println(err)
 
-		return
-	}
-
-	if repeatedEmail {
 		return
 	}
 
@@ -151,7 +151,23 @@ func processEmail(fileRoot string, emailSender chan string) {
 		return
 	}
 
-	emailSender <- string(jsonEmail)
+	// Fall back to the file path when the email has no Message-ID header
+	// (rare, but the Enron corpus contains some malformed messages).
+	docID := fullEmail.MessageID
+	if docID == "" {
+		docID = fileRoot
+	}
+
+	actionJSON, err := json.Marshal(map[string]map[string]string{
+		"index": {"_index": indexName, "_id": docID},
+	})
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	emailSender <- string(actionJSON) + jumpLine + string(jsonEmail)
 }
 
 func main() {

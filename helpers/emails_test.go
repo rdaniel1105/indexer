@@ -13,18 +13,18 @@ func TestCreateEmailStructError(t *testing.T) {
 	path := "$5asdas"
 	expectedErr := fmt.Errorf("file reading error: open %v: no such file or directory", path)
 
-	_, _, err := CreateEmailStruct(path)
+	_, err := CreateEmailStruct(path)
 	c.EqualError(err, expectedErr.Error())
 }
 
 func TestCreateEmailStruct(t *testing.T) {
 	c := require.New(t)
 
-	email, repeated, err := CreateEmailStruct("testdata/maildir/sample/sent/1")
+	email, err := CreateEmailStruct("testdata/maildir/sample/sent/1")
 	c.NoError(err)
-	c.False(repeated)
 	c.NotNil(email)
 	c.Equal("alice@example.com", email.From)
 	c.Equal("bob@example.com", email.To)
 	c.Equal("Sample message", email.Subject)
+	c.Equal("<sample-1@example.com>", email.MessageID)
 }

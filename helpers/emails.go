@@ -1,34 +1,24 @@
 package helpers
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"github.com/rdaniel1105/indexer/models"
 	"fmt"
 	"io"
 	"net/mail"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/rdaniel1105/indexer/models"
 )
 
-var (
-	emailHashes = make(map[string]struct{})
-
-	hasher = sha256.New()
-)
-
-func hashContent(content string) string {
-	hasher.Write([]byte(content))
-
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-// CreateEmailStruct reads the text file content and creates the corresponding email structure
-func CreateEmailStruct(path string) (*models.Email, bool, error) {
+// CreateEmailStruct reads an RFC 822 file and returns the parsed Email.
+// Deduplication is handled downstream by ZincSearch (each document is
+// keyed by Message-ID, so re-indexing the same email replaces rather than
+// duplicates the existing record).
+func CreateEmailStruct(path string) (*models.Email, error) {
 	emailContent, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
-		return nil, false, fmt.Errorf("file reading error: %w", err)
+		return nil, fmt.Errorf("file reading error: %w", err)
 	}
 
 	correctedEmail := emailHeaderCheck(string(emailContent))
@@ -36,17 +26,17 @@ func CreateEmailStruct(path string) (*models.Email, bool, error) {
 
 	emailMessage, err := mail.ReadMessage(contentReader)
 	if err != nil {
-		return nil, false, fmt.Errorf("mail message reading error: %w", err)
+		return nil, fmt.Errorf("mail message reading error: %w", err)
 	}
 
 	header := emailMessage.Header
 
 	body, err := io.ReadAll(emailMessage.Body)
 	if err != nil {
-		return nil, false, fmt.Errorf("mail body reading error: %w", err)
+		return nil, fmt.Errorf("mail body reading error: %w", err)
 	}
 
-	email := &models.Email{
+	return &models.Email{
 		MessageID:               header.Get("Message-ID"),
 		Date:                    header.Get("Date"),
 		From:                    header.Get("From"),
@@ -64,26 +54,6 @@ func CreateEmailStruct(path string) (*models.Email, bool, error) {
 		XFolder:                 header.Get("X-Folder"),
 		XOrigin:                 header.Get("X-Origin"),
 		XFileName:               header.Get("X-FileName"),
-		Body:                    string(body)}
-
-	repeatedEmail := RepeatedEmailChecker(email.Body)
-	if repeatedEmail {
-		return nil, true, nil
-	}
-
-	return email, false, nil
-}
-
-// RepeatedEmailChecker ahora usa el hash del contenido
-func RepeatedEmailChecker(newBody string) bool {
-	hash := hashContent(newBody)
-
-	_, exists := emailHashes[hash]
-	if exists {
-		return true
-	}
-
-	emailHashes[hash] = struct{}{}
-
-	return false
+		Body:                    string(body),
+	}, nil
 }

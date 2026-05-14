@@ -18,7 +18,7 @@ var (
 	errReadingBody  = errors.New("reading body from request failed")
 	errCloseResBody = errors.New("closing response body failed")
 
-	_defaultZincSearchURL = "http://localhost:4080"
+	_defaultZincSearchURL   = "http://localhost:4080"
 	_defaultZincSearchIndex = "emails"
 
 	httpClient = &http.Client{
@@ -47,15 +47,23 @@ func setCredentials() {
 		baseURL = _defaultZincSearchURL
 	}
 
-	index := os.Getenv("ZINCSEARCH_INDEX")
-	if index == "" {
-		index = _defaultZincSearchIndex
-	}
-
-	zincSearchURL = fmt.Sprintf("%s/api/%s/_multi", baseURL, index)
+	// _bulk takes action metadata (including _index and _id) in the request
+	// body, so the index name is no longer part of the URL path. The index
+	// name lives in main.IndexName and is emitted per-document by the caller.
+	zincSearchURL = fmt.Sprintf("%s/api/_bulk", baseURL)
 
 	admin = os.Getenv("ZINCSEARCH_USERNAME")
 	password = os.Getenv("ZINCSEARCH_PASSWORD")
+}
+
+// IndexName returns the ZincSearch index to write to, sourced from the
+// ZINCSEARCH_INDEX env var with a sensible default. Exposed so that callers
+// can construct per-document action lines for the _bulk endpoint.
+func IndexName() string {
+	if v := os.Getenv("ZINCSEARCH_INDEX"); v != "" {
+		return v
+	}
+	return _defaultZincSearchIndex
 }
 
 // BulkData indexes the data to the database
