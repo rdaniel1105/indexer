@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"example/indexer/models"
+	"github.com/rdaniel1105/indexer/models"
 	"strings"
 )
 

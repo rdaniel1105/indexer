@@ -18,7 +18,8 @@ var (
 	errReadingBody  = errors.New("reading body from request failed")
 	errCloseResBody = errors.New("closing response body failed")
 
-	_defaultZincSearchURL = "http://localhost:4080/api/mamuroemail/_multi"
+	_defaultZincSearchURL = "http://localhost:4080"
+	_defaultZincSearchIndex = "emails"
 
 	httpClient = &http.Client{
 		Timeout: 30 * time.Second,
@@ -41,13 +42,20 @@ var (
 )
 
 func setCredentials() {
-	zincSearchURL = os.Getenv("ZINC_SEARCH_URL")
-	if zincSearchURL == "" {
-		zincSearchURL = _defaultZincSearchURL
+	baseURL := os.Getenv("ZINCSEARCH_URL")
+	if baseURL == "" {
+		baseURL = _defaultZincSearchURL
 	}
 
-	admin = os.Getenv("ADMIN")
-	password = os.Getenv("PASSWORD")
+	index := os.Getenv("ZINCSEARCH_INDEX")
+	if index == "" {
+		index = _defaultZincSearchIndex
+	}
+
+	zincSearchURL = fmt.Sprintf("%s/api/%s/_multi", baseURL, index)
+
+	admin = os.Getenv("ZINCSEARCH_USERNAME")
+	password = os.Getenv("ZINCSEARCH_PASSWORD")
 }
 
 // BulkData indexes the data to the database

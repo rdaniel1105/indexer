@@ -3,31 +3,28 @@ package helpers
 import (
 	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateEmailStructError(t *testing.T) {
-	path := "$5asdas"
+	c := require.New(t)
 
+	path := "$5asdas"
 	expectedErr := fmt.Errorf("file reading error: open %v: no such file or directory", path)
 
 	_, _, err := CreateEmailStruct(path)
-
-	if err == nil {
-		t.Error(expectedErr.Error())
-	}
-
-	if err.Error() != expectedErr.Error() {
-		t.Errorf("Expected error FAILED: expected %v got %v\n", expectedErr, err)
-	}
-
+	c.EqualError(err, expectedErr.Error())
 }
 
 func TestCreateEmailStruct(t *testing.T) {
-	path := "../../enron_mail_20110402/maildir/allen-p/sent/1"
+	c := require.New(t)
 
-	_, _, err := CreateEmailStruct(path)
-
-	if err != nil {
-		t.Error("FAILED: expecting err to be nil")
-	}
+	email, repeated, err := CreateEmailStruct("testdata/maildir/sample/sent/1")
+	c.NoError(err)
+	c.False(repeated)
+	c.NotNil(email)
+	c.Equal("alice@example.com", email.From)
+	c.Equal("bob@example.com", email.To)
+	c.Equal("Sample message", email.Subject)
 }

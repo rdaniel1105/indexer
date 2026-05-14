@@ -1,2 +1,13 @@
-emails.ndjson
 .env
+.env.local
+
+# Build output
+/indexer
+*.exe
+
+# Profiling
+*.prof
+
+# Local data dumps
+*.ndjson
+*.jdson

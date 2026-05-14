@@ -3,7 +3,7 @@ package helpers
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"example/indexer/models"
+	"github.com/rdaniel1105/indexer/models"
 	"fmt"
 	"io"
 	"net/mail"

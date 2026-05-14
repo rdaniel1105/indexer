@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"example/indexer/helpers"
+	"github.com/rdaniel1105/indexer/helpers"
 	"flag"
 	"fmt"
 	"log"
@@ -159,7 +159,7 @@ func main() {
 
 	dirPath := flag.Arg(0)
 	if dirPath == "" {
-		dirPath = "../../enron_mail_20150507/maildir"
+		log.Fatal("usage: indexer <path-to-maildir>")
 	}
 
 	initEnv()

@@ -1,0 +1,15 @@
+Message-ID: <sample-1@example.com>
+Date: Mon, 1 Jan 2024 09:00:00 -0000
+From: alice@example.com
+To: bob@example.com
+Subject: Sample message
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+X-From: Alice <alice@example.com>
+X-To: Bob <bob@example.com>
+X-Folder: \Sample\Sent
+X-Origin: SAMPLE
+X-FileName: sample.pst
+
+This is a synthetic test fixture for the indexer tests.
